@@ -6,7 +6,7 @@
   <title>臺灣島嶼時空開拓記 - 國小五年級社會科探險</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Tone.js 音效 -->
+  <!-- Tone.js 音效支援 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.min.js"></script>
   <!-- Lucide 圖標庫 -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -42,9 +42,9 @@
 </head>
 <body class="h-[100dvh] w-screen overflow-hidden bg-slate-900 text-slate-800 flex flex-col">
 
-  <!-- 頂部即時狀態欄 (手機雙層自適應架構) -->
+  <!-- 頂部即時狀態欄 (雙層自適應架構，永不折行) -->
   <header class="relative z-20 bg-slate-900/90 backdrop-blur-md border-b border-amber-500/30 text-white px-3 py-1.5 shrink-0">
-    <!-- 第一行：遊戲名稱與操作按鈕 -->
+    <!-- 第一行：名稱與功能鍵 -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-1.5">
         <span class="bg-amber-600 p-1 rounded-md text-white shadow shrink-0">
@@ -54,7 +54,6 @@
         <span id="currentEraBadge" class="text-[10px] bg-amber-500/20 border border-amber-400 text-amber-300 px-1.5 py-0.2 rounded-full whitespace-nowrap">舊石器時代</span>
       </div>
 
-      <!-- 右側按鍵群 -->
       <div class="flex items-center gap-1">
         <button id="btnVoiceToggle" class="p-1.5 rounded-lg bg-slate-800 border border-slate-700 active:bg-slate-700 text-amber-300 transition" title="語音開關">
           <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
@@ -68,7 +67,7 @@
       </div>
     </div>
 
-    <!-- 第二行：數值狀態列 (完全不換行) -->
+    <!-- 第二行：數值狀態列 -->
     <div class="flex items-center justify-between gap-1 mt-1 text-[11px] font-semibold">
       <div class="flex-1 flex items-center justify-center gap-1 bg-sky-950/80 border border-sky-400/40 py-0.5 rounded-md text-sky-200">
         <i data-lucide="droplet" class="w-3 h-3 text-sky-400 shrink-0"></i>
@@ -85,11 +84,11 @@
     </div>
   </header>
 
-  <!-- 大海與六角島嶼畫布 Canvas -->
+  <!-- 大海畫布 Canvas -->
   <main class="relative flex-1 w-full h-full water-bg overflow-hidden">
     <canvas id="gameCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
 
-    <!-- 底部收合式指南小按鈕（避免遮擋畫面） -->
+    <!-- 底部開拓指南浮鈕 -->
     <div class="absolute bottom-3 left-3 z-10">
       <button id="btnToggleGuide" class="flex items-center gap-1 bg-slate-900/80 backdrop-blur-md border border-amber-500/40 text-amber-300 px-2.5 py-1.5 rounded-full text-xs font-bold shadow-lg">
         <i data-lucide="compass" class="w-3.5 h-3.5"></i> 開拓指南
@@ -108,7 +107,7 @@
           <span class="bg-amber-600 px-2 py-0.5 rounded text-[11px] font-bold text-amber-100 flex items-center gap-1">
             <i data-lucide="shield-alert" class="w-3 h-3"></i> 任務
           </span>
-          <span id="quizChapterBadge" class="text-xs text-amber-300 font-semibold truncate max-w-[140px]">單元 1-1 鳥瞰臺灣</span>
+          <span id="quizChapterBadge" class="text-xs text-amber-300 font-semibold truncate max-w-[140px]">單元 1-1</span>
         </div>
         <button id="btnReadQuestion" class="flex items-center gap-1 bg-amber-700/80 px-2 py-0.5 rounded text-[11px] text-amber-200 transition">
           <i data-lucide="volume-2" class="w-3 h-3"></i> 朗讀
@@ -121,10 +120,7 @@
           <h3 id="quizQuestion" class="text-sm font-bold leading-snug">載入問題中...</h3>
         </div>
 
-        <div id="quizOptions" class="grid grid-cols-1 gap-2">
-          <!-- 選項按鈕 -->
-        </div>
-
+        <div id="quizOptions" class="grid grid-cols-1 gap-2"></div>
         <div id="quizFeedback" class="hidden p-2.5 rounded-lg text-xs leading-relaxed"></div>
       </div>
 
@@ -152,7 +148,7 @@
     </div>
   </div>
 
-  <!-- 筆記本視窗 -->
+  <!-- 課文重點與錯題筆記視窗 -->
   <div id="modalNotebook" class="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/75 backdrop-blur-sm hidden">
     <div class="wood-board w-full max-w-lg max-h-[90dvh] flex flex-col rounded-2xl p-3.5 text-white shadow-2xl animate-pop">
       <div class="flex items-center justify-between border-b border-amber-600/50 pb-1.5 mb-2 shrink-0">
@@ -172,45 +168,58 @@
   </div>
 
   <script>
-    /* ==========================================
-       1. 國小五年級社會科題庫
-       ========================================== */
+    /* ==========================================================================
+       1. 24 道精準全覆蓋題庫（逐條對照課本四圖，完全無死角）
+       ========================================================================== */
     const QUESTION_BANK = [
+      // 1-1 鳥瞰臺灣
       { id: 1, chapter: "1-1 鳥瞰臺灣", era: "geography", q: "臺灣本島的經緯度範圍大約位在何處？", options: ["東經 120°~122°、北緯 22°~25°", "東經 100°~105°、北緯 10°~15°", "西經 120°~122°、南緯 22°~25°", "東經 130°~135°、北緯 30°~35°"], ans: 0, explanation: "課本 1-1：臺灣大約位於東經 120 度至 122 度、北緯 22 度至 25 度之間。" },
       { id: 2, chapter: "1-1 鳥瞰臺灣", era: "geography", q: "橫穿臺灣中南部（嘉義、花蓮），作為熱帶與副熱帶分界線的重要緯線是？", options: ["赤道（0度）", "北回歸線（北緯 23.5度）", "南回歸線（南緯 23.5度）", "本初子午線"], ans: 1, explanation: "課本 1-1：北回歸線（北緯 23.5 度）橫穿嘉義與花蓮，是臺灣熱帶與副熱帶氣候分界線。" },
       { id: 3, chapter: "1-1 鳥瞰臺灣", era: "geography", q: "臺灣四面環海，其中臺灣島的「東側」面臨哪一個大洋？", options: ["太平洋", "臺灣海峽", "巴士海峽", "大西洋"], ans: 0, explanation: "課本 1-1：臺灣東臨太平洋、西臨臺灣海峽、南臨巴士海峽、北臨東海。" },
       { id: 4, chapter: "1-1 鳥瞰臺灣", era: "geography", q: "臺灣在地理位置上的重要戰略價值是什麼？", options: ["位於東亞島弧的樞紐，是國際海上交通與貿易要道", "是美洲與歐洲陸地唯一的交會點", "地處寒帶，是極地探險必經之地", "位居非洲大陸南端的航海通道"], ans: 0, explanation: "課本 1-1：臺灣位居東亞島弧樞紐，為國際貿易要道與候鳥遷徙生物匯聚的關鍵地帶。" },
+
+      // 1-2 海中誕生的家園
       { id: 5, chapter: "1-2 海中誕生的家園", era: "geography", q: "臺灣島主要是由哪兩個板塊相互擠壓、隆起而形成的火山與褶皺島嶼？", options: ["菲律賓海板塊 與 歐亞板塊", "太平洋板塊 與 印澳板塊", "北美洲板塊 與 非洲板塊", "南極洲板塊 與 歐亞板塊"], ans: 0, explanation: "課本 1-2：數百萬年前由菲律賓海板塊與歐亞板塊互相擠壓隆起，至今地震仍頻繁。" },
-      { id: 6, chapter: "1-2 海中誕生的家園", era: "geography", q: "臺灣面積最大（約占全島三分之二）的地形是哪一種？", options: ["山地", "平原", "台地", "盆地"], ans: 0, explanation: "課本 1-2：山地面積最大（約占三分之二），主要有五大山脈。" },
+      { id: 6, chapter: "1-2 海中誕生的家園", era: "geography", q: "臺灣面積最大（約占全島三分之二）的地形是哪一種？", options: ["山地", "平原", "台地", "盆地"], ans: 0, explanation: "課本 1-2：山地面積最大（約占三分之二），主要有中央、雪山、玉山、阿里山與海岸山脈。" },
       { id: 7, chapter: "1-2 海中誕生的家園", era: "geography", q: "四周地勢較高、中間低平的地形被稱為？例如臺北與臺中。", options: ["盆地", "平原", "丘陵", "台地"], ans: 0, explanation: "課本 1-2：四周高、中間低平為「盆地」（如臺北盆地、臺中盆地）。" },
-      { id: 8, chapter: "1-2 海中誕生的家園", era: "geography", q: "金門和馬祖在早期與歐亞大陸相連，因海平面上升而分隔，屬於哪種島嶼類型？", options: ["大陸島", "火山島", "珊瑚礁島", "人工島"], ans: 0, explanation: "課本 1-2：金門、馬祖屬於「大陸島」；澎湖、綠島為火山島；小琉球為珊瑚礁島。" },
-      { id: 9, chapter: "1-2 海中誕生的家園", era: "geography", q: "屏東外海的小琉球（琉球嶼）是由珊瑚礁碎屑堆積地殼隆起形成，屬於？", options: ["珊瑚礁島", "大陸島", "火山島", "沙洲島"], ans: 0, explanation: "課本 1-2：小琉球、東沙群島、南沙群島皆屬於「珊瑚礁島」。" },
-      { id: 10, chapter: "1-3 史前時代（舊石器）", era: "paleolithic", q: "臺灣舊石器時代的代表文化是長濱文化與網形文化，當時人類已知道什麼重要技能？", options: ["已知用火，並住在天然洞穴中", "已經懂得煉鐵製造農具", "種植大量水稻與定居", "使用文字記錄祭祀"], ans: 0, explanation: "課本 1-3：舊石器時代已知用火、住洞穴，靠採集狩獵過著漂泊移居生活。" },
-      { id: 11, chapter: "1-3 史前時代（舊石器）", era: "paleolithic", q: "舊石器時代長濱文化的先住民所使用的主要工具是什麼？", options: ["敲打製作的「打製石器」", "精細磨光的「磨製石器」", "鋒利的「青銅刀」與「鐵器」", "精美雕花的陶器"], ans: 0, explanation: "課本 1-3：舊石器時代使用敲打粗製的「打製石器」。" },
-      { id: 12, chapter: "1-3 史前時代（新石器）", era: "neolithic", q: "新石器時代（大坌坑、卑南、圓山文化）人類生活最重要的轉變是什麼？", options: ["出現原始農業與畜牧，人類開始「定居」生活", "開始駕駛蒸氣輪船進行海外貿易", "發明了火藥與印刷術", "只能住在海蝕洞穴中依靠採集"], ans: 0, explanation: "課本 1-3：新石器時代出現農業畜牧，使人類告別漂泊，開始走向定居生活。" },
-      { id: 13, chapter: "1-3 史前時代（新石器）", era: "neolithic", q: "新石器時代先住民為儲存、烹煮食物與水，發明並廣泛製作了什麼器具？", options: ["陶器（如繩紋陶）", "塑膠密封罐", "不鏽鋼保溫杯", "青銅鼎"], ans: 0, explanation: "課本 1-3：新石器時代已知製作陶器來儲存食物，工具亦演進為精細的「磨製石器」。" },
-      { id: 14, chapter: "1-3 史前時代（金屬器）", era: "metal", q: "位於新北市八里區的「十三行文化」屬於金屬器時代，其最具代表性的工藝成就為？", options: ["已知「煉鐵」（使用鐵器）", "發明了電腦晶片", "使用打製的粗糙礫石", "尚未懂得使用火"], ans: 0, explanation: "課本 1-3：金屬器時代代表為十三行文化，已知煉鐵，並擁有更進步的農業。" },
-      { id: 15, chapter: "1-3 史前時代（金屬器）", era: "metal", q: "在十三行文化遺址中發現了玻璃手鐲、青銅器與外來錢幣，這證實了當時具有什麼特色？", options: ["擁有發達繁榮的海上貿易活動", "當時完全不與外界任何島嶼接觸", "當時已經普遍使用智慧型手機", "完全沒有任何航海技術"], ans: 0, explanation: "課本 1-3：金屬器時代具有更發達的海上貿易商旅，交換外來玻璃珠與青銅器。" },
-      { id: 16, chapter: "2-1 島嶼上的子民", era: "modern", q: "臺灣原住民族在語言與文化系統上，屬於世界上的哪一個語族？", options: ["南島語族", "印歐語族", "漢藏語族", "阿爾泰語族"], ans: 0, explanation: "課本 2-1：臺灣原住民族屬於南島語族，已在臺灣生活了數千年。" },
-      { id: 17, chapter: "2-1 島嶼上的子民", era: "modern", q: "在臺灣原住民社會制度中，財產與家系由「女性」繼承，男子從贅或入贅的是哪種制度？", options: ["母系社會（如阿美族、卑南族）", "父系社會（如泰雅族、布農族）", "貴族社會（如排灣族、魯凱族）", "封建君主制"], ans: 0, explanation: "課本 2-1：母系社會由女性繼承財產家系（阿美族、卑南族）；父系社會由男性繼承（泰雅族、布農族）。" },
-      { id: 18, chapter: "2-1 島嶼上的子民", era: "modern", q: "漢人移民先後攜帶原鄉神明祈求渡海與開墾平安，其中哪一位是常見的守護海神？", options: ["天上聖母（媽祖）", "阿波羅太陽神", "宙斯", "雷神索爾"], ans: 0, explanation: "課本 2-1：漢人常攜帶原鄉神明如媽祖、保生大帝、開漳聖王祈求渡海開墾平安。" },
-      { id: 19, chapter: "2-2 社會規範與法律", era: "modern", q: "在四大社會規範中，哪一個是「唯一具有國家強制力」的？", options: ["法律", "風俗習慣", "倫理道德", "宗教信仰"], ans: 0, explanation: "課本 2-2：法律是唯一具有「國家強制力」的規範，違反會受罰款或刑罰處分。" },
-      { id: 20, chapter: "2-2 社會規範與法律", era: "modern", q: "近年推動讓一般國民參與法院審判，提升司法透明與信任的現代制度是？", options: ["國民法官制度", "宗祠族長私審", "家族長老會議", "抽籤決定判決"], ans: 0, explanation: "課本 2-2：現代社會推動「國民法官」制度讓人民參與審判，落實民主法治與公民素養。" }
+      { id: 8, chapter: "1-2 海中誕生的家園", era: "geography", q: "坡度較緩，常見於山地外緣的地形是什麼？例如課本提到的哪一個地方？", options: ["丘陵（如苗栗丘陵）", "盆地（如臺北盆地）", "台地（如林口台地）", "平原（如嘉南平原）"], ans: 0, explanation: "課本 1-2：坡度較緩常見於山地外緣為「丘陵」，代表如苗栗丘陵。" },
+      { id: 9, chapter: "1-2 海中誕生的家園", era: "geography", q: "頂部平坦、四周陡峭的地形稱為「台地」，課本中列舉了哪兩個著名代表？", options: ["林口台地、桃園台地", "苗栗丘陵、阿里山", "嘉南平原、屏東平原", "台北盆地、台中盆地"], ans: 0, explanation: "課本 1-2：頂部平坦四周陡峭為「台地」，課本代表例為林口台地、桃園台地。" },
+      { id: 10, chapter: "1-2 海中誕生的家園", era: "geography", q: "金門和馬祖在早期與歐亞大陸相連，因海平面上升而分隔，屬於哪種島嶼類型？", options: ["大陸島", "火山島", "珊瑚礁島", "人工島"], ans: 0, explanation: "課本 1-2：金門、馬祖屬於「大陸島」；澎湖、綠島為火山島；小琉球為珊瑚礁島。" },
+      { id: 11, chapter: "1-2 海中誕生的家園", era: "geography", q: "屏東外海的小琉球（琉球嶼）是由珊瑚礁碎屑堆積地殼隆起形成，屬於？", options: ["珊瑚礁島", "大陸島", "火山島", "沙洲島"], ans: 0, explanation: "課本 1-2：小琉球、東沙群島、南沙群島皆屬於「珊瑚礁島」。" },
+
+      // 1-3 史前時代
+      { id: 12, chapter: "1-3 史前時代（舊石器）", era: "paleolithic", q: "臺灣舊石器時代的代表文化是長濱文化與網形文化，當時人類已知道什麼重要技能？", options: ["已知用火，並住在天然洞穴中", "已經懂得煉鐵製造農具", "種植大量水稻與定居", "使用文字記錄祭祀"], ans: 0, explanation: "課本 1-3：舊石器時代已知用火、住洞穴，靠採集狩獵過著漂泊移居生活。" },
+      { id: 13, chapter: "1-3 史前時代（舊石器）", era: "paleolithic", q: "舊石器時代長濱文化的先住民所使用的主要工具是什麼？", options: ["敲打製作的「打製石器」", "精細磨光的「磨製石器」", "鋒利的「青銅刀」與「鐵器」", "精美雕花的陶器"], ans: 0, explanation: "課本 1-3：舊石器時代使用敲打粗製的「打製石器」。" },
+      { id: 14, chapter: "1-3 史前時代（新石器）", era: "neolithic", q: "新石器時代（大坌坑、卑南、圓山文化）人類生活最重要的轉變是什麼？", options: ["出現原始農業與畜牧，人類開始「定居」生活", "開始駕駛蒸氣輪船進行海外貿易", "發明了火藥與印刷術", "只能住在海蝕洞穴中依靠採集"], ans: 0, explanation: "課本 1-3：新石器時代出現農業畜牧，使人類告別漂泊，開始走向定居生活。" },
+      { id: 15, chapter: "1-3 史前時代（新石器）", era: "neolithic", q: "新石器時代先住民為儲存、烹煮食物與水，發明並廣泛製作了什麼器具？", options: ["陶器（如繩紋陶）", "塑膠密封罐", "不鏽鋼保溫杯", "青銅鼎"], ans: 0, explanation: "課本 1-3：新石器時代已知製作陶器來儲存食物，工具亦演進為精細的「磨製石器」。" },
+      { id: 16, chapter: "1-3 史前時代（金屬器）", era: "metal", q: "位於新北市八里區的「十三行文化」屬於金屬器時代，其最具代表性的工藝成就為？", options: ["已知「煉鐵」（使用鐵器）", "發明了電腦晶片", "使用打製的粗糙礫石", "尚未懂得使用火"], ans: 0, explanation: "課本 1-3：金屬器時代代表為十三行文化，已知煉鐵，並擁有更進步的農業。" },
+      { id: 17, chapter: "1-3 史前時代（金屬器）", era: "metal", q: "在十三行文化遺址中發現了玻璃手鐲、青銅器與外來錢幣，這證實了當時具有什麼特色？", options: ["擁有發達繁榮的海上貿易活動", "當時完全不與外界任何島嶼接觸", "當時已經普遍使用智慧型手機", "完全沒有任何航海技術"], ans: 0, explanation: "課本 1-3：金屬器時代具有更發達的海上貿易商旅，交換外來玻璃珠與青銅器。" },
+
+      // 2-1 島嶼上的子民
+      { id: 18, chapter: "2-1 島嶼上的子民", era: "modern", q: "臺灣原住民族在語言與文化系統上，屬於世界上的哪一個語族？", options: ["南島語族", "印歐語族", "漢藏語族", "阿爾泰語族"], ans: 0, explanation: "課本 2-1：臺灣原住民族屬於南島語族，已在臺灣生活了數千年。" },
+      { id: 19, chapter: "2-1 島嶼上的子民", era: "modern", q: "原住民傳統領域因漢人開墾與政府政策而流失，近年推動什麼運動以保障其權益？", options: ["還我土地運動", "綠色革命運動", "海上貿易運動", "新生活運動"], ans: 0, explanation: "課本 2-1：近年原住民族推動「還我土地運動」，以保障其傳統領域的權益。" },
+      { id: 20, chapter: "2-1 島嶼上的子民", era: "modern", q: "課本提到原住民敬畏祖靈的歲時祭儀，下列哪一個「族群與祭典」的配對是完全正確的？", options: ["賽夏族：矮靈祭、達悟族：飛魚祭", "阿美族：飛魚祭、達悟族：豐年祭", "泰雅族：矮靈祭、布農族：飛魚祭", "排灣族：豐年祭、魯凱族：矮靈祭"], ans: 0, explanation: "課本 2-1：阿美族為豐年祭、賽夏族為矮靈祭、達悟族為飛魚祭。" },
+      { id: 21, chapter: "2-1 島嶼上的子民", era: "modern", q: "在臺灣原住民社會制度中，財產與家系由「女性」繼承，男子從贅或入贅的是哪種制度？", options: ["母系社會（如阿美族、卑南族）", "父系社會（如泰雅族、布農族）", "貴族社會（如排灣族、魯凱族）", "封建君主制"], ans: 0, explanation: "課本 2-1：母系社會由女性繼承財產家系（阿美族、卑南族）；父系社會由男性繼承（泰雅族、布農族）。" },
+      { id: 22, chapter: "2-1 島嶼上的子民", era: "modern", q: "漢人社會以父系家庭為主，透過哪兩種方式來凝聚同姓血緣向心力、展現慎終追遠？", options: ["興建「宗祠（祠堂）」與編纂「族譜」", "舉辦運動會與出國旅遊", "每週更換不同的姓氏", "設立科技公司與工廠"], ans: 0, explanation: "課本 2-1：漢人透過興建「宗祠（祠堂）」與編纂「族譜」凝聚向心力，展現慎終追遠。" },
+
+      // 2-2 社會規範與法律
+      { id: 23, chapter: "2-2 社會規範與法律", era: "modern", q: "在四大社會規範（風俗習慣、倫理道德、宗教信仰、法律）中，哪一個是「唯一具有國家強制力」的？", options: ["法律", "風俗習慣", "倫理道德", "宗教信仰"], ans: 0, explanation: "課本 2-2：法律是唯一具有「國家強制力」的規範，違反會受罰款或刑罰處分。" },
+      { id: 24, chapter: "2-2 社會規範與法律", era: "modern", q: "現代民主社會推動哪一項制度讓人民直接參與審判，落實公民素養與司法正義？", options: ["國民法官制度", "宗祠族長私審", "家族長老會議", "抽籤決定判決"], ans: 0, explanation: "課本 2-2：現代社會推動「國民法官」制度讓人民參與審判，與時俱進落實社會正義。" }
     ];
 
-    /* ==========================================
-       2. 歷史時代與營造配置
-       ========================================== */
+    /* ==========================================================================
+       2. 歷史時代與食衣住行育樂營造
+       ========================================================================== */
     const ERA_CONFIG = {
       paleolithic: {
         name: "舊石器時代",
         reqLands: 4,
         next: "neolithic",
         buildings: [
-          { type: "cave", name: "天然海蝕洞 (住)", cost: 1, category: "住", benefit: "遮風擋雨聚落" },
-          { type: "fire", name: "採集生火堆 (食)", cost: 1, category: "食", benefit: "熟食燒烤取暖防獸" },
-          { type: "flint_tool", name: "敲打打石坊 (行)", cost: 2, category: "行", benefit: "粗打石斧方便狩獵" },
-          { type: "camp_dance", name: "營火傳承祭 (育樂)", cost: 2, category: "育樂", benefit: "篝火歌謠講述冒險" }
+          { type: "cave", name: "海蝕岩洞 (住)", cost: 1, category: "住", benefit: "天然洞穴遮風避雨" },
+          { type: "fire", name: "採集生火 (食)", cost: 1, category: "食", benefit: "熟食燒烤取暖防獸" },
+          { type: "flint_tool", name: "打製石器坊 (行)", cost: 2, category: "行", benefit: "敲打粗糙礫石石斧" },
+          { type: "camp_dance", name: "營火歌謠 (育樂)", cost: 2, category: "育樂", benefit: "篝火邊講述冒險傳奇" }
         ]
       },
       neolithic: {
@@ -218,10 +227,10 @@
         reqLands: 8,
         next: "metal",
         buildings: [
-          { type: "stilt_house", name: "干欄高架屋 (住)", cost: 2, category: "住", benefit: "防潮防蛇害定居聚落" },
-          { type: "millet_farm", name: "原始小米田 (食)", cost: 2, category: "食", benefit: "種植小米家畜飼育" },
-          { type: "pottery_kiln", name: "繩紋陶窯 (育樂)", cost: 3, category: "育樂", benefit: "燒陶儲水壓印紋飾" },
-          { type: "jade_workshop", name: "磨製玉玦坊 (衣)", cost: 3, category: "衣", benefit: "磨製玉器象徵美感" }
+          { type: "stilt_house", name: "干欄高架屋 (住)", cost: 2, category: "住", benefit: "防潮防蛇定居聚落" },
+          { type: "millet_farm", name: "原始小米田 (食)", cost: 2, category: "食", benefit: "原始農業與家畜畜牧" },
+          { type: "pottery_kiln", name: "繩紋陶窯 (育樂)", cost: 3, category: "育樂", benefit: "捏陶儲糧壓印紋飾" },
+          { type: "jade_workshop", name: "磨製玉玦坊 (衣)", cost: 3, category: "衣", benefit: "精細磨製人獸形玉器" }
         ]
       },
       metal: {
@@ -229,10 +238,10 @@
         reqLands: 12,
         next: "modern",
         buildings: [
-          { type: "iron_forge", name: "高溫煉鐵爐 (行)", cost: 3, category: "行", benefit: "鍛造鐵刀農具提升產量" },
+          { type: "iron_forge", name: "高溫煉鐵爐 (行)", cost: 3, category: "行", benefit: "冶煉堅硬鐵刀農具" },
           { type: "trade_port", name: "海外貿易港 (育樂)", cost: 4, category: "育樂", benefit: "換回琉璃珠與青銅器" },
-          { type: "paddy_field", name: "豐產水稻田 (食)", cost: 3, category: "食", benefit: "水田稻作規模化人口" },
-          { type: "shell_mound", name: "臨海大貝塚 (住)", cost: 4, category: "住", benefit: "大型防潮歷史聚落" }
+          { type: "paddy_field", name: "豐產水稻田 (食)", cost: 3, category: "食", benefit: "水田稻作支撐聚落" },
+          { type: "shell_mound", name: "臨海大貝塚 (住)", cost: 4, category: "住", benefit: "防潮海濱大型聚落" }
         ]
       },
       modern: {
@@ -240,18 +249,18 @@
         reqLands: 999,
         next: null,
         buildings: [
-          { type: "civic_court", name: "國民法庭 (育樂)", cost: 4, category: "育樂", benefit: "落實民主法治與人權" },
+          { type: "civic_court", name: "國民法庭 (育樂)", cost: 4, category: "育樂", benefit: "落實民主法治人權" },
           { type: "rail_transit", name: "高鐵樞紐站 (行)", cost: 5, category: "行", benefit: "東亞樞紐一日生活圈" },
-          { type: "eco_residence", name: "抗震綠社區 (住)", cost: 4, category: "住", benefit: "地震防護與永續生活" },
-          { type: "culture_temple", name: "文化會館 (食衣)", cost: 5, category: "食", benefit: "凝聚多元族群精神" }
+          { type: "eco_residence", name: "抗震綠社區 (住)", cost: 4, category: "住", benefit: "地震防護永續生活" },
+          { type: "culture_temple", name: "宗祠會館 (食衣)", cost: 5, category: "食", benefit: "凝聚多元族群精神" }
         ]
       }
     };
 
-    /* ==========================================
-       3. 遊戲狀態與存檔
-       ========================================== */
-    const STORAGE_KEY = "TAIWAN_HIST_PAGAMO_V3_MOBILE";
+    /* ==========================================================================
+       3. 存檔與重置
+       ========================================================================== */
+    const STORAGE_KEY = "TAIWAN_HIST_PAGAMO_V4_COMPLETE";
     let gameState = {
       era: "paleolithic",
       water: 2,
@@ -294,20 +303,19 @@
       }
     }
 
-    /* ==========================================
-       4. 手機六角網格尺寸與繪製
-       ========================================== */
+    /* ==========================================================================
+       4. 畫布繪製與六角網格系統
+       ========================================================================== */
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
 
-    // 依螢幕寬度自動調節六角半徑 (手機 36px，平板/電腦 48px)
     function getHexRadius() {
       return window.innerWidth < 640 ? 36 : 48;
     }
 
-    function hexToPixel(q, r, centerX, centerY, radius) {
-      const x = centerX + radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
-      const y = centerY + radius * (3 / 2 * r);
+    function hexToPixel(q, r, cx, cy, radius) {
+      const x = cx + radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+      const y = cy + radius * (3 / 2 * r);
       return { x, y };
     }
 
@@ -386,7 +394,7 @@
       const cx = canvas.width / 2 + camera.x;
       const cy = canvas.height / 2 + camera.y;
 
-      // 海洋波紋
+      // 海洋水波光影
       ctx.save();
       ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
       ctx.lineWidth = 1.5;
@@ -425,7 +433,7 @@
         ctx.restore();
       });
 
-      // 繪製已佔領領地
+      // 繪製已佔領土地
       Object.keys(gameState.hexes).forEach(k => {
         const h = gameState.hexes[k];
         if (!h.owned) return;
@@ -451,9 +459,9 @@
     }
     window.addEventListener("resize", resizeCanvas);
 
-    /* ==========================================
-       5. 觸控與點擊判定
-       ========================================== */
+    /* ==========================================================================
+       5. 互動判定與事件
+       ========================================================================== */
     function getHexAtPixel(px, py) {
       const radius = getHexRadius();
       const cx = canvas.width / 2 + camera.x;
@@ -502,7 +510,7 @@
       else openBuild(h.q, h.r);
     });
 
-    // 手機平移
+    // 行動裝置手勢支援
     canvas.addEventListener("touchstart", e => {
       if (e.touches.length === 1) {
         dragging = true;
@@ -520,9 +528,9 @@
 
     canvas.addEventListener("touchend", () => dragging = false);
 
-    /* ==========================================
-       6. 答題與語音
-       ========================================== */
+    /* ==========================================================================
+       6. 答題與語音朗讀
+       ========================================================================== */
     let curQuizTarget = null;
     let curQ = null;
     let voiceOn = true;
@@ -552,6 +560,7 @@
 
     function openQuiz(q, r) {
       curQuizTarget = { q, r };
+      // 依當前時代優先抽該時代題目，並混合地理與多元族群/法治題
       const pool = QUESTION_BANK.filter(i => i.era === gameState.era || i.era === "geography" || i.era === "modern");
       curQ = pool[Math.floor(Math.random() * pool.length)];
 
@@ -596,16 +605,16 @@
         if (gameState.streak >= 5) {
           gameState.streak = 0;
           gameState.water += 3;
-          bonus = "🎉 連勝 5 題！天降甘霖 +3 水滴！";
+          bonus = "🎉 連續答對 5 題！天降甘霖 +3 水滴！";
         }
         fb.className = "p-2.5 rounded-lg text-xs leading-relaxed bg-emerald-950/80 border border-emerald-500 text-emerald-200";
-        fb.innerHTML = `<strong>答對了！成功拓墾！</strong><br>${curQ.explanation}<br><span class="text-amber-300 font-bold">${bonus}</span>`;
+        fb.innerHTML = `<strong>答對了！成功拓墾領地！</strong><br>${curQ.explanation}<br><span class="text-amber-300 font-bold">${bonus}</span>`;
         speak(`答對了！${curQ.explanation}`);
 
         const k = `${curQuizTarget.q},${curQuizTarget.r}`;
         gameState.hexes[k] = { q: curQuizTarget.q, r: curQuizTarget.r, owned: true, building: "farm", era: gameState.era };
 
-        // 升級檢測
+        // 升級時代檢測
         const ownedCount = Object.values(gameState.hexes).filter(h => h.owned).length;
         const cfg = ERA_CONFIG[gameState.era];
         if (cfg.next && ownedCount >= cfg.reqLands) {
@@ -636,9 +645,9 @@
       updateUI();
     }
 
-    /* ==========================================
-       7. 營造與筆記視窗邏輯
-       ========================================== */
+    /* ==========================================================================
+       7. 營造與筆記清單
+       ========================================================================== */
     function openBuild(q, r) {
       const k = `${q},${r}`;
       const eraData = ERA_CONFIG[gameState.era];
@@ -658,7 +667,7 @@
           </button>
         `;
         div.querySelector("button").onclick = () => {
-          if (gameState.water < b.cost) return alert("甘霖水滴不足！");
+          if (gameState.water < b.cost) return alert("甘霖水滴不足！請先開墾野地答題累積。");
           gameState.water -= b.cost;
           gameState.hexes[k].building = b.type;
           gameState.hexes[k].era = gameState.era;
@@ -674,11 +683,11 @@
     }
 
     const SUMMARY_TEXTS = [
-      { t: "1-1 鳥瞰臺灣", c: "經緯度：東經120°~122°、北緯22°~25°。北回歸線(23.5°N)橫穿嘉義花蓮，為熱帶副熱帶分界。四周環海為東亞樞紐。" },
-      { t: "1-2 海中誕生", c: "菲律賓海板塊與歐亞板塊擠壓隆起。山地占2/3。金門馬祖為大陸島；澎湖為火山島；小琉球為珊瑚礁島。" },
-      { t: "1-3 史前時代", c: "舊石器(長濱)：已知用火、住海蝕洞、打製石器。新石器(大坌坑、卑南)：農業定居、繩紋陶。金屬器(十三行)：高溫煉鐵、海貿商旅。" },
-      { t: "2-1 島嶼子民", c: "南島語族臺灣原住民。母系(阿美、卑南)、父系(泰雅、布農)、貴族(排灣、魯凱)。漢人帶來民間信仰與宗祠族譜。" },
-      { t: "2-2 社會規範與法", c: "風俗習慣、倫理道德、宗教信仰、法律。法律是唯一具有「國家強制力」的規範。現代推動國民法官落實法治。" }
+      { t: "1-1 鳥瞰臺灣", c: "經緯度：東經120°~122°、北緯22°~25°。北回歸線(23.5°N)橫穿嘉義花蓮，為熱帶副熱帶分界。四周環海為東亞島弧樞紐。" },
+      { t: "1-2 海中誕生", c: "菲律賓海板塊與歐亞板塊擠壓隆起。山地占2/3(五大山脈)。地形代表：苗栗丘陵、林口桃園台地、嘉南平原、臺北台中盆地。離島：金門馬祖為大陸島；澎湖為火山島；小琉球為珊瑚礁島。" },
+      { t: "1-3 史前時代", c: "舊石器(長濱文化)：已知用火、住海蝕洞、敲打打製石器。新石器(大坌坑、卑南、圓山)：原始農業定居、繩紋陶器、磨製石器。金屬器(十三行)：高溫煉鐵、發達海上商貿與外來琉璃青銅。" },
+      { t: "2-1 島嶼子民", c: "南島語族臺灣原住民。母系(阿美、卑南)、父系(泰雅、布農)、貴族(排灣、魯凱)。祭典：阿美豐年祭、賽夏矮靈祭、達悟飛魚祭；爭取還我土地運動。漢人帶來民間信仰(媽祖保生大帝)與宗祠族譜。" },
+      { t: "2-2 社會規範與法", c: "風俗習慣、倫理道德、宗教信仰、法律。法律是唯一具有「國家強制力」的規範。現代推動國民法官落實民主法治。" }
     ];
 
     function renderNotebook(tab) {
@@ -718,7 +727,6 @@
       document.getElementById("mistakeBadge").textContent = gameState.mistakes.length;
     }
 
-    // 事件監聽綁定
     document.getElementById("btnToggleGuide").onclick = () => {
       document.getElementById("guidePopover").classList.toggle("hidden");
     };
